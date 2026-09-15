@@ -1,0 +1,3622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#02040a">
+
+<title>BEIJING TIME · 北京时间</title>
+
+<style>
+
+/* =========================================================
+   GLOBAL
+========================================================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --cyan: #63f3ff;
+    --blue: #4f8cff;
+    --purple: #a66cff;
+    --green: #62ffb0;
+    --yellow: #ffe66d;
+    --red: #ff5c7c;
+
+    --white: #edfaff;
+    --background: #02040a;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family:
+        Inter,
+        "SF Pro Display",
+        "Segoe UI",
+        "PingFang SC",
+        "Microsoft YaHei",
+        sans-serif;
+
+    color: var(--white);
+
+    background:
+        radial-gradient(
+            circle at 50% 42%,
+            rgba(55, 110, 255, 0.13),
+            transparent 32%
+        ),
+        radial-gradient(
+            circle at 20% 80%,
+            rgba(0, 255, 255, 0.06),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at 85% 15%,
+            rgba(160, 80, 255, 0.08),
+            transparent 28%
+        ),
+        var(--background);
+}
+
+
+/* =========================================================
+   WEATHER CANVAS
+========================================================= */
+
+#weatherCanvas {
+    position: fixed;
+
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    pointer-events: none;
+
+    z-index: 0;
+}
+
+
+/* =========================================================
+   GRID
+========================================================= */
+
+.grid {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1;
+
+    pointer-events: none;
+
+    background-image:
+        linear-gradient(
+            rgba(99, 243, 255, 0.035) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(99, 243, 255, 0.035) 1px,
+            transparent 1px
+        );
+
+    background-size: 70px 70px;
+
+    mask-image:
+        radial-gradient(
+            ellipse at center,
+            black 0%,
+            transparent 78%
+        );
+}
+
+
+/* =========================================================
+   SCANLINES
+========================================================= */
+
+.scanlines {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 20;
+
+    pointer-events: none;
+
+    background:
+        repeating-linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.018) 0px,
+            rgba(255, 255, 255, 0.018) 1px,
+            transparent 2px,
+            transparent 5px
+        );
+
+    opacity: 0.18;
+}
+
+
+/* =========================================================
+   VIGNETTE
+========================================================= */
+
+.vignette {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 19;
+
+    pointer-events: none;
+
+    background:
+        radial-gradient(
+            ellipse at center,
+            transparent 45%,
+            rgba(0, 0, 0, 0.6) 100%
+        );
+}
+
+
+/* =========================================================
+   MOUSE LIGHT
+========================================================= */
+
+.cursor-light {
+    position: fixed;
+
+    width: 500px;
+    height: 500px;
+
+    border-radius: 50%;
+
+    pointer-events: none;
+
+    z-index: 2;
+
+    transform:
+        translate(-50%, -50%);
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(70, 210, 255, 0.08),
+            transparent 68%
+        );
+
+    filter: blur(5px);
+}
+
+
+/* =========================================================
+   MAIN APP
+========================================================= */
+
+.app {
+    position: relative;
+
+    z-index: 5;
+
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 30px;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   CENTRAL GLOW
+========================================================= */
+
+.glow {
+    position: absolute;
+
+    width: 300px;
+    height: 300px;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(70, 180, 255, 0.055),
+            transparent 70%
+        );
+
+    filter: blur(20px);
+
+    animation:
+        breathing 5s ease-in-out infinite;
+}
+
+@keyframes breathing {
+
+    0%,
+    100% {
+        opacity: 0.5;
+
+        transform:
+            scale(0.9);
+    }
+
+    50% {
+        opacity: 1;
+
+        transform:
+            scale(1.15);
+    }
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header {
+    position: absolute;
+
+    top: 34px;
+
+    left: 50%;
+
+    transform:
+        translateX(-50%);
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    letter-spacing: 0.35em;
+
+    opacity: 0.8;
+
+    white-space: nowrap;
+}
+
+.header-title {
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    color: var(--cyan);
+
+    text-shadow:
+        0 0 10px rgba(99, 243, 255, 0.8),
+        0 0 30px rgba(99, 243, 255, 0.3);
+}
+
+.header-subtitle {
+
+    margin-top: 7px;
+
+    font-size: 9px;
+
+    color:
+        rgba(230, 250, 255, 0.45);
+
+    letter-spacing: 0.28em;
+}
+
+
+/* =========================================================
+   CLOCK
+========================================================= */
+
+.clock-wrapper {
+
+    position: relative;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    margin-top: -70px;
+}
+
+
+/* =========================================================
+   CLOCK RING
+========================================================= */
+
+.clock-ring {
+
+    position: absolute;
+
+    width: min(78vw, 780px);
+
+    height: min(78vw, 780px);
+
+    border-radius: 50%;
+
+    border:
+        1px solid rgba(99, 243, 255, 0.12);
+
+    box-shadow:
+        0 0 40px rgba(80, 180, 255, 0.05),
+        inset 0 0 80px rgba(80, 180, 255, 0.03);
+
+    animation:
+        rotateSlow 50s linear infinite;
+}
+
+.clock-ring::before {
+
+    content: "";
+
+    position: absolute;
+
+    inset: 7%;
+
+    border-radius: 50%;
+
+    border:
+        1px dashed rgba(166, 108, 255, 0.1);
+
+    animation:
+        rotateSlowReverse 80s linear infinite;
+}
+
+.clock-ring::after {
+
+    content: "";
+
+    position: absolute;
+
+    width: 9px;
+    height: 9px;
+
+    top: 9%;
+    left: 50%;
+
+    border-radius: 50%;
+
+    background: var(--cyan);
+
+    box-shadow:
+        0 0 10px var(--cyan),
+        0 0 30px var(--cyan),
+        0 0 70px rgba(99, 243, 255, 0.7);
+}
+
+@keyframes rotateSlow {
+
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes rotateSlowReverse {
+
+    from {
+        transform: rotate(360deg);
+    }
+
+    to {
+        transform: rotate(0deg);
+    }
+}
+
+
+/* =========================================================
+   CLOCK LABEL
+========================================================= */
+
+.clock-label {
+
+    font-size: 10px;
+
+    color:
+        rgba(220, 250, 255, 0.45);
+
+    letter-spacing: 0.45em;
+
+    margin-bottom: 16px;
+}
+
+
+/* =========================================================
+   TIME
+========================================================= */
+
+.time {
+
+    position: relative;
+
+    font-size:
+        clamp(
+            70px,
+            12vw,
+            190px
+        );
+
+    font-weight: 300;
+
+    line-height: 0.9;
+
+    letter-spacing: -0.055em;
+
+    white-space: nowrap;
+
+    color: #effcff;
+
+    text-shadow:
+        0 0 5px rgba(255, 255, 255, 0.8),
+        0 0 20px rgba(99, 243, 255, 0.65),
+        0 0 60px rgba(80, 160, 255, 0.35),
+        0 0 120px rgba(80, 160, 255, 0.15);
+
+    font-variant-numeric:
+        tabular-nums;
+}
+
+.time::after {
+
+    content: "";
+
+    position: absolute;
+
+    left: 10%;
+    right: 10%;
+
+    bottom: -16px;
+
+    height: 1px;
+
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            var(--cyan),
+            transparent
+        );
+
+    opacity: 0.45;
+
+    box-shadow:
+        0 0 15px var(--cyan);
+}
+
+
+/* =========================================================
+   DATE
+========================================================= */
+
+.date {
+
+    margin-top: 28px;
+
+    font-size: 12px;
+
+    letter-spacing: 0.28em;
+
+    color:
+        rgba(220, 250, 255, 0.65);
+}
+
+
+/* =========================================================
+   WEATHER PANEL
+========================================================= */
+
+.weather-panel {
+
+    margin-top: 48px;
+
+    width:
+        min(900px, 92vw);
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    animation:
+        weatherAppear 1.2s ease;
+}
+
+@keyframes weatherAppear {
+
+    from {
+        opacity: 0;
+
+        transform:
+            translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+
+        transform:
+            translateY(0);
+    }
+}
+
+
+/* =========================================================
+   WEATHER MAIN
+========================================================= */
+
+.weather-main {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 22px;
+}
+
+
+/* =========================================================
+   WEATHER ICON
+========================================================= */
+
+.weather-icon {
+
+    width: 72px;
+    height: 72px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 58px;
+
+    filter:
+        drop-shadow(
+            0 0 15px rgba(99, 243, 255, 0.5)
+        );
+
+    animation:
+        weatherFloat 4s ease-in-out infinite;
+}
+
+@keyframes weatherFloat {
+
+    0%,
+    100% {
+        transform:
+            translateY(0);
+    }
+
+    50% {
+        transform:
+            translateY(-5px);
+    }
+}
+
+
+/* =========================================================
+   TEMPERATURE
+========================================================= */
+
+.weather-temperature {
+
+    font-size: 42px;
+
+    font-weight: 300;
+
+    letter-spacing: -0.04em;
+
+    text-shadow:
+        0 0 25px rgba(99, 243, 255, 0.25);
+}
+
+
+/* =========================================================
+   WEATHER CONDITION
+========================================================= */
+
+.weather-condition {
+
+    margin-left: 2px;
+
+    font-size: 12px;
+
+    color:
+        rgba(235, 250, 255, 0.62);
+
+    letter-spacing: 0.12em;
+}
+
+
+/* =========================================================
+   WEATHER LOCATION
+========================================================= */
+
+.weather-location {
+
+    margin-top: 6px;
+
+    font-size: 10px;
+
+    color:
+        rgba(235, 250, 255, 0.35);
+
+    letter-spacing: 0.28em;
+}
+
+
+/* =========================================================
+   WEATHER STATS
+========================================================= */
+
+.weather-stats {
+
+    display: flex;
+
+    gap: 28px;
+
+    margin-top: 20px;
+
+    flex-wrap: wrap;
+
+    justify-content: center;
+}
+
+.stat {
+
+    min-width: 75px;
+
+    text-align: center;
+}
+
+.stat-value {
+
+    font-size: 12px;
+
+    color:
+        rgba(240, 253, 255, 0.85);
+
+    font-variant-numeric:
+        tabular-nums;
+}
+
+.stat-label {
+
+    margin-top: 4px;
+
+    font-size: 8px;
+
+    letter-spacing: 0.15em;
+
+    color:
+        rgba(230, 250, 255, 0.3);
+}
+
+
+/* =========================================================
+   FORECAST
+========================================================= */
+
+.forecast {
+
+    width: 100%;
+
+    margin-top: 24px;
+
+    display: flex;
+
+    justify-content: center;
+
+    gap: 4px;
+}
+
+.forecast-item {
+
+    width: 70px;
+
+    padding: 8px 5px;
+
+    border-top:
+        1px solid rgba(99, 243, 255, 0.1);
+
+    text-align: center;
+
+    transition:
+        background 0.3s,
+        transform 0.3s;
+}
+
+.forecast-item:hover {
+
+    background:
+        rgba(99, 243, 255, 0.035);
+
+    transform:
+        translateY(-3px);
+}
+
+.forecast-time {
+
+    font-size: 8px;
+
+    color:
+        rgba(230, 250, 255, 0.3);
+
+    letter-spacing: 0.05em;
+}
+
+.forecast-icon {
+
+    margin-top: 5px;
+
+    font-size: 17px;
+}
+
+.forecast-temp {
+
+    margin-top: 3px;
+
+    font-size: 10px;
+
+    color:
+        rgba(240, 253, 255, 0.7);
+
+    font-variant-numeric:
+        tabular-nums;
+}
+
+
+/* =========================================================
+   SYNC STATUS
+========================================================= */
+
+.status-panel {
+
+    position: absolute;
+
+    left: 30px;
+
+    bottom: 26px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        monospace;
+
+    font-size: 9px;
+
+    letter-spacing: 0.08em;
+
+    color:
+        rgba(220, 250, 255, 0.38);
+}
+
+.status-dot {
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background:
+        var(--yellow);
+
+    box-shadow:
+        0 0 10px var(--yellow);
+
+    transition:
+        background 0.4s,
+        box-shadow 0.4s;
+}
+
+.status-dot.calibrated {
+
+    background:
+        var(--green);
+
+    box-shadow:
+        0 0 10px var(--green),
+        0 0 20px rgba(98, 255, 176, 0.5);
+}
+
+.status-dot.offline {
+
+    background:
+        var(--red);
+
+    box-shadow:
+        0 0 10px var(--red);
+}
+
+.status-text {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+
+/* =========================================================
+   WEATHER STATUS
+========================================================= */
+
+.weather-status {
+
+    position: absolute;
+
+    right: 30px;
+
+    bottom: 26px;
+
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        monospace;
+
+    font-size: 8px;
+
+    color:
+        rgba(220, 250, 255, 0.25);
+
+    letter-spacing: 0.08em;
+
+    text-align: right;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 700px) {
+
+    .app {
+        padding: 20px;
+    }
+
+    .clock-wrapper {
+        margin-top: -30px;
+    }
+
+    .clock-ring {
+        width: 95vw;
+        height: 95vw;
+    }
+
+    .weather-panel {
+        margin-top: 35px;
+    }
+
+    .weather-main {
+        gap: 10px;
+    }
+
+    .weather-icon {
+        font-size: 45px;
+
+        width: 55px;
+    }
+
+    .weather-temperature {
+        font-size: 32px;
+    }
+
+    .weather-stats {
+        gap: 15px;
+    }
+
+    .forecast {
+
+        overflow-x: auto;
+
+        justify-content:
+            flex-start;
+
+        padding-bottom: 4px;
+    }
+
+    .forecast-item {
+        min-width: 60px;
+    }
+
+    .status-panel {
+
+        left: 15px;
+
+        bottom: 14px;
+    }
+
+    .weather-status {
+
+        right: 15px;
+
+        bottom: 14px;
+    }
+
+}
+
+
+@media (max-height: 750px) {
+
+    .clock-wrapper {
+        margin-top: -20px;
+    }
+
+    .weather-panel {
+        margin-top: 25px;
+    }
+
+    .forecast {
+        margin-top: 15px;
+    }
+
+    .header {
+        top: 18px;
+    }
+
+}
+
+</style>
+</head>
+
+
+<body>
+
+<!-- =========================================================
+     WEATHER CANVAS
+========================================================= -->
+
+<canvas id="weatherCanvas"></canvas>
+
+
+<!-- =========================================================
+     BACKGROUND
+========================================================= -->
+
+<div class="grid"></div>
+
+<div class="scanlines"></div>
+
+<div class="vignette"></div>
+
+<div
+    class="cursor-light"
+    id="cursorLight">
+</div>
+
+
+<!-- =========================================================
+     APP
+========================================================= -->
+
+<div class="app">
+
+    <div class="glow"></div>
+
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <div class="header">
+
+        <div class="header-title">
+            BEIJING STANDARD TIME
+        </div>
+
+        <div class="header-subtitle">
+            ASIA / SHANGHAI · UTC+08:00
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         CLOCK
+    ====================================================== -->
+
+    <div class="clock-wrapper">
+
+        <div class="clock-ring"></div>
+
+        <div class="clock-label">
+            BEIJING TIME
+        </div>
+
+        <div
+            class="time"
+            id="clock">
+            00:00:00
+        </div>
+
+        <div
+            class="date"
+            id="date">
+            ---- / -- / -- · ---
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         WEATHER
+    ====================================================== -->
+
+    <section class="weather-panel">
+
+        <div class="weather-main">
+
+            <div
+                class="weather-icon"
+                id="weatherIcon">
+                ☀️
+            </div>
+
+
+            <div>
+
+                <div
+                    class="weather-temperature"
+                    id="temperature">
+                    --°
+                </div>
+
+
+                <div
+                    class="weather-condition"
+                    id="condition">
+                    WEATHER LOADING
+                </div>
+
+
+                <div class="weather-location">
+                    BEIJING · CHINA
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             WEATHER STATS
+        ================================================== -->
+
+        <div class="weather-stats">
+
+            <div class="stat">
+
+                <div
+                    class="stat-value"
+                    id="feelsLike">
+                    --°
+                </div>
+
+                <div class="stat-label">
+                    FEELS LIKE
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div
+                    class="stat-value"
+                    id="humidity">
+                    --%
+                </div>
+
+                <div class="stat-label">
+                    HUMIDITY
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div
+                    class="stat-value"
+                    id="wind">
+                    -- km/h
+                </div>
+
+                <div class="stat-label">
+                    WIND
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div
+                    class="stat-value"
+                    id="precipitation">
+                    --%
+                </div>
+
+                <div class="stat-label">
+                    RAIN CHANCE
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             HOURLY FORECAST
+        ================================================== -->
+
+        <div
+            class="forecast"
+            id="forecast">
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         TIME SYNC STATUS
+    ====================================================== -->
+
+    <div class="status-panel">
+
+        <div
+            class="status-dot"
+            id="statusDot">
+        </div>
+
+
+        <div class="status-text">
+
+            <div id="syncStatus">
+                INITIALIZING
+            </div>
+
+            <div id="syncDetail">
+                CONNECTING...
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         WEATHER STATUS
+    ====================================================== -->
+
+    <div class="weather-status">
+
+        <div id="weatherStatus">
+            WEATHER · CONNECTING
+        </div>
+
+        <div id="weatherUpdated">
+            --
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   CONFIGURATION
+========================================================= */
+
+
+/*
+ * 北京坐标
+ */
+
+const BEIJING = {
+
+    latitude: 39.9042,
+
+    longitude: 116.4074
+
+};
+
+
+/*
+ * 每小时进行一次时间校准。
+ *
+ * 60 × 60 × 1000
+ *
+ * = 3,600,000 ms
+ */
+
+const RESYNC_INTERVAL =
+    60 * 60 * 1000;
+
+
+/*
+ * 天气每 15 分钟更新一次。
+ */
+
+const WEATHER_INTERVAL =
+    15 * 60 * 1000;
+
+
+/*
+ * 天气粒子过渡时间。
+ *
+ * 4000 ms = 4 秒。
+ */
+
+const PARTICLE_TRANSITION_DURATION =
+    4000;
+
+
+/* =========================================================
+   TIME SOURCES
+========================================================= */
+
+const TIME_SOURCES = [
+
+    {
+        name: "TIMEAPI",
+
+        url:
+            "https://timeapi.io/api/Time/current/zone?timeZone=Asia%2FShanghai",
+
+        parser(data) {
+
+            if (!data.dateTime) {
+
+                throw new Error(
+                    "TimeAPI: missing dateTime"
+                );
+
+            }
+
+
+            let value =
+                data.dateTime;
+
+
+            /*
+             * 如果 API 返回的时间没有
+             * 时区 offset，
+             *
+             * 显式告诉 JavaScript：
+             *
+             * 这是 UTC+08:00 的北京时间。
+             */
+
+            if (
+                !/[zZ]|[+-]\d{2}:\d{2}$/.test(
+                    value
+                )
+            ) {
+
+                value +=
+                    "+08:00";
+
+            }
+
+
+            const timestamp =
+                new Date(value).getTime();
+
+
+            if (
+                !Number.isFinite(timestamp)
+            ) {
+
+                throw new Error(
+                    "TimeAPI: invalid timestamp"
+                );
+
+            }
+
+
+            return timestamp;
+
+        }
+
+    },
+
+
+    {
+        name: "WORLDTIMEAPI",
+
+        url:
+            "https://worldtimeapi.org/api/timezone/Asia/Shanghai",
+
+        parser(data) {
+
+            if (
+                typeof data.unixtime !==
+                "number"
+            ) {
+
+                throw new Error(
+                    "WorldTimeAPI: missing unixtime"
+                );
+
+            }
+
+
+            /*
+             * Unix timestamp 本身是 UTC epoch。
+             */
+
+            return (
+                data.unixtime * 1000
+            );
+
+        }
+
+    }
+
+];
+
+
+/* =========================================================
+   TIME STATE
+========================================================= */
+
+let calibrated =
+    false;
+
+
+/*
+ * 用于显示校准前后的差值。
+ */
+
+let clockOffset =
+    0;
+
+
+/*
+ * 最近一次校准发生的本地时间。
+ */
+
+let lastSyncTimestamp =
+    null;
+
+
+/*
+ * 当前使用的时间服务器。
+ */
+
+let currentTimeSource =
+    "LOCAL";
+
+
+/*
+ * 最近一次 RTT。
+ */
+
+let lastRTT =
+    null;
+
+
+/*
+ * 真正用于连续计时的基准。
+ *
+ * syncServerTime：
+ *     校准瞬间的正确北京时间
+ *
+ * syncPerformanceTime：
+ *     校准瞬间 performance.now()
+ */
+
+let syncServerTime =
+    null;
+
+let syncPerformanceTime =
+    null;
+
+
+/* =========================================================
+   DOM
+========================================================= */
+
+const clockElement =
+    document.getElementById(
+        "clock"
+    );
+
+const dateElement =
+    document.getElementById(
+        "date"
+    );
+
+const statusDot =
+    document.getElementById(
+        "statusDot"
+    );
+
+const syncStatus =
+    document.getElementById(
+        "syncStatus"
+    );
+
+const syncDetail =
+    document.getElementById(
+        "syncDetail"
+    );
+
+
+/* =========================================================
+   DATE FORMATTERS
+========================================================= */
+
+const timeFormatter =
+    new Intl.DateTimeFormat(
+        "zh-CN",
+        {
+            timeZone:
+                "Asia/Shanghai",
+
+            hour:
+                "2-digit",
+
+            minute:
+                "2-digit",
+
+            second:
+                "2-digit",
+
+            hourCycle:
+                "h23"
+        }
+    );
+
+
+const dateFormatter =
+    new Intl.DateTimeFormat(
+        "zh-CN",
+        {
+            timeZone:
+                "Asia/Shanghai",
+
+            year:
+                "numeric",
+
+            month:
+                "2-digit",
+
+            day:
+                "2-digit",
+
+            weekday:
+                "long"
+        }
+    );
+
+
+/* =========================================================
+   GET CORRECTED TIME
+========================================================= */
+
+function getCorrectedTimestamp() {
+
+    /*
+     * 成功校准后：
+     *
+     * 不再依赖 Date.now()
+     *
+     * 而是：
+     *
+     * 正确服务器时间
+     * +
+     * performance.now()经过的时间
+     */
+
+    if (
+        calibrated &&
+        syncServerTime !== null &&
+        syncPerformanceTime !== null
+    ) {
+
+        return (
+
+            syncServerTime +
+
+            (
+                performance.now() -
+                syncPerformanceTime
+            )
+
+        );
+
+    }
+
+
+    /*
+     * 尚未校准：
+     * 使用电脑本地时间。
+     */
+
+    return Date.now();
+
+}
+
+
+/* =========================================================
+   UPDATE CLOCK
+========================================================= */
+
+function updateClock() {
+
+    const timestamp =
+        getCorrectedTimestamp();
+
+
+    const date =
+        new Date(timestamp);
+
+
+    clockElement.textContent =
+        timeFormatter.format(date);
+
+
+    dateElement.textContent =
+        dateFormatter
+            .format(date)
+            .replace(
+                /\s+/g,
+                " · "
+            );
+
+}
+
+
+/* =========================================================
+   FETCH TIME SOURCE
+========================================================= */
+
+async function fetchTimeSource(
+    source
+) {
+
+    const controller =
+        new AbortController();
+
+
+    /*
+     * 最长等待 8 秒。
+     */
+
+    const timeout =
+        setTimeout(
+            () => {
+                controller.abort();
+            },
+            8000
+        );
+
+
+    /*
+     * performance.now()
+     * 比 Date.now() 更适合测量 RTT。
+     */
+
+    const start =
+        performance.now();
+
+
+    try {
+
+        const response =
+            await fetch(
+                source.url,
+                {
+                    method:
+                        "GET",
+
+                    cache:
+                        "no-store",
+
+                    signal:
+                        controller.signal
+                }
+            );
+
+
+        const end =
+            performance.now();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        const serverTimestamp =
+            source.parser(data);
+
+
+        /*
+         * RTT。
+         */
+
+        const rtt =
+            end - start;
+
+
+        /*
+         * 假设上下行延迟大致对称：
+         *
+         * RTT / 2
+         *
+         * 用来估计服务器此刻的时间。
+         */
+
+        const estimatedServerNow =
+            serverTimestamp +
+            rtt / 2;
+
+
+        return {
+
+            source:
+                source.name,
+
+            serverTimestamp,
+
+            estimatedServerNow,
+
+            rtt
+
+        };
+
+
+    } finally {
+
+        clearTimeout(timeout);
+
+    }
+
+}
+
+
+/* =========================================================
+   SYNCHRONIZE CLOCK
+========================================================= */
+
+async function synchronizeClock() {
+
+    statusDot.className =
+        "status-dot";
+
+
+    syncStatus.textContent =
+        "CALIBRATING";
+
+
+    syncDetail.textContent =
+        "CONTACTING TIME SERVERS...";
+
+
+    /*
+     * 按顺序尝试时间服务器。
+     */
+
+    for (
+        const source
+        of TIME_SOURCES
+    ) {
+
+        try {
+
+            const result =
+                await fetchTimeSource(
+                    source
+                );
+
+
+            /*
+             * 保存服务器正确时间。
+             */
+
+            syncServerTime =
+                result.estimatedServerNow;
+
+
+            /*
+             * 保存 performance.now()
+             * 的连续计时起点。
+             */
+
+            syncPerformanceTime =
+                performance.now();
+
+
+            /*
+             * 计算本地系统时间偏差。
+             *
+             * 这个值主要用于 UI 展示。
+             */
+
+            clockOffset =
+                result.estimatedServerNow -
+                Date.now();
+
+
+            calibrated =
+                true;
+
+
+            lastSyncTimestamp =
+                Date.now();
+
+
+            currentTimeSource =
+                result.source;
+
+
+            lastRTT =
+                result.rtt;
+
+
+            /*
+             * 更新 UI。
+             */
+
+            statusDot.className =
+                "status-dot calibrated";
+
+
+            syncStatus.textContent =
+                "CALIBRATED · ONLINE";
+
+
+            syncDetail.textContent =
+                `${result.source} · RTT ${Math.round(result.rtt)}ms`;
+
+
+            return true;
+
+
+        } catch (error) {
+
+            console.warn(
+                `${source.name} failed:`,
+                error
+            );
+
+        }
+
+    }
+
+
+    /*
+     * 所有服务器都失败。
+     */
+
+    if (calibrated) {
+
+        /*
+         * 已经校准过：
+         *
+         * 继续使用上一次的正确时间。
+         */
+
+        statusDot.className =
+            "status-dot offline";
+
+
+        syncStatus.textContent =
+            "OFFLINE · HOLDOVER";
+
+
+        syncDetail.textContent =
+            "LAST CALIBRATION RETAINED";
+
+    } else {
+
+        /*
+         * 从来没有校准成功。
+         */
+
+        statusDot.className =
+            "status-dot offline";
+
+
+        syncStatus.textContent =
+            "LOCAL CLOCK";
+
+
+        syncDetail.textContent =
+            "NETWORK CALIBRATION FAILED";
+
+    }
+
+
+    return false;
+
+}
+
+
+/* =========================================================
+   ONLINE / OFFLINE
+========================================================= */
+
+window.addEventListener(
+    "online",
+    () => {
+
+        synchronizeClock();
+
+        loadWeather();
+
+    }
+);
+
+
+window.addEventListener(
+    "offline",
+    () => {
+
+        statusDot.className =
+            "status-dot offline";
+
+
+        syncStatus.textContent =
+            calibrated
+                ? "OFFLINE · HOLDOVER"
+                : "OFFLINE";
+
+
+        syncDetail.textContent =
+            calibrated
+                ? "USING LAST CALIBRATION"
+                : "LOCAL CLOCK";
+
+
+        weatherStatus.textContent =
+            weatherData
+                ? "WEATHER · HOLDOVER"
+                : "WEATHER · OFFLINE";
+
+    }
+);
+
+
+/* =========================================================
+   HOURLY TIME RESYNC
+========================================================= */
+
+setInterval(
+    synchronizeClock,
+    RESYNC_INTERVAL
+);
+
+
+/* =========================================================
+   CLOCK RENDER LOOP
+========================================================= */
+
+setInterval(
+    updateClock,
+    100
+);
+
+
+/* =========================================================
+   WEATHER STATE
+========================================================= */
+
+let weatherData =
+    null;
+
+
+/* =========================================================
+   WEATHER DOM
+========================================================= */
+
+const weatherIcon =
+    document.getElementById(
+        "weatherIcon"
+    );
+
+const temperature =
+    document.getElementById(
+        "temperature"
+    );
+
+const condition =
+    document.getElementById(
+        "condition"
+    );
+
+const feelsLike =
+    document.getElementById(
+        "feelsLike"
+    );
+
+const humidity =
+    document.getElementById(
+        "humidity"
+    );
+
+const wind =
+    document.getElementById(
+        "wind"
+    );
+
+const precipitation =
+    document.getElementById(
+        "precipitation"
+    );
+
+const forecast =
+    document.getElementById(
+        "forecast"
+    );
+
+const weatherStatus =
+    document.getElementById(
+        "weatherStatus"
+    );
+
+const weatherUpdated =
+    document.getElementById(
+        "weatherUpdated"
+    );
+
+
+/* =========================================================
+   WMO WEATHER DESCRIPTION
+========================================================= */
+
+function weatherInfo(
+    code,
+    isDay = true
+) {
+
+    if (code === 0) {
+
+        return {
+
+            icon:
+                isDay
+                    ? "☀️"
+                    : "🌙",
+
+            text:
+                "晴朗"
+
+        };
+
+    }
+
+
+    if (
+        code === 1 ||
+        code === 2
+    ) {
+
+        return {
+
+            icon:
+                isDay
+                    ? "🌤️"
+                    : "🌙",
+
+            text:
+                "少云"
+
+        };
+
+    }
+
+
+    if (code === 3) {
+
+        return {
+
+            icon:
+                "☁️",
+
+            text:
+                "阴天"
+
+        };
+
+    }
+
+
+    if (
+        code === 45 ||
+        code === 48
+    ) {
+
+        return {
+
+            icon:
+                "🌫️",
+
+            text:
+                "雾"
+
+        };
+
+    }
+
+
+    if (
+        code >= 51 &&
+        code <= 57
+    ) {
+
+        return {
+
+            icon:
+                "🌦️",
+
+            text:
+                "毛毛雨"
+
+        };
+
+    }
+
+
+    if (
+        code >= 61 &&
+        code <= 67
+    ) {
+
+        return {
+
+            icon:
+                "🌧️",
+
+            text:
+                "降雨"
+
+        };
+
+    }
+
+
+    if (
+        code >= 71 &&
+        code <= 77
+    ) {
+
+        return {
+
+            icon:
+                "❄️",
+
+            text:
+                "降雪"
+
+        };
+
+    }
+
+
+    if (
+        code >= 80 &&
+        code <= 82
+    ) {
+
+        return {
+
+            icon:
+                "🌦️",
+
+            text:
+                "阵雨"
+
+        };
+
+    }
+
+
+    if (
+        code === 85 ||
+        code === 86
+    ) {
+
+        return {
+
+            icon:
+                "🌨️",
+
+            text:
+                "阵雪"
+
+        };
+
+    }
+
+
+    if (code >= 95) {
+
+        return {
+
+            icon:
+                "⛈️",
+
+            text:
+                "雷暴"
+
+        };
+
+    }
+
+
+    return {
+
+        icon:
+            "🌤️",
+
+        text:
+            "未知"
+
+    };
+
+}
+
+
+/* =========================================================
+   WEATHER MODE
+========================================================= */
+
+function getWeatherMode(
+    code
+) {
+
+    if (
+        code >= 61 &&
+        code <= 67
+    ) {
+
+        return "rain";
+
+    }
+
+
+    if (
+        code >= 80 &&
+        code <= 82
+    ) {
+
+        return "rain";
+
+    }
+
+
+    if (code >= 95) {
+
+        return "storm";
+
+    }
+
+
+    if (
+        code >= 71 &&
+        code <= 77
+    ) {
+
+        return "snow";
+
+    }
+
+
+    if (
+        code === 85 ||
+        code === 86
+    ) {
+
+        return "snow";
+
+    }
+
+
+    if (
+        code === 45 ||
+        code === 48
+    ) {
+
+        return "fog";
+
+    }
+
+
+    if (code === 3) {
+
+        return "cloud";
+
+    }
+
+
+    return "clear";
+
+}
+
+
+/* =========================================================
+   WEATHER PARTICLE SYSTEM
+========================================================= */
+
+const canvas =
+    document.getElementById(
+        "weatherCanvas"
+    );
+
+const ctx =
+    canvas.getContext("2d");
+
+
+let currentWeatherMode =
+    "clear";
+
+
+let previousWeatherMode =
+    "clear";
+
+
+let particles =
+    [];
+
+
+let nextParticles =
+    [];
+
+
+let transitionActive =
+    false;
+
+
+let transitionStart =
+    0;
+
+
+/* =========================================================
+   RESIZE CANVAS
+========================================================= */
+
+function resizeCanvas() {
+
+    const dpr =
+        window.devicePixelRatio || 1;
+
+
+    canvas.width =
+        window.innerWidth * dpr;
+
+
+    canvas.height =
+        window.innerHeight * dpr;
+
+
+    canvas.style.width =
+        window.innerWidth + "px";
+
+
+    canvas.style.height =
+        window.innerHeight + "px";
+
+
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
+
+}
+
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
+
+
+resizeCanvas();
+
+
+/* =========================================================
+   CREATE PARTICLES
+========================================================= */
+
+function createParticles(
+    mode
+) {
+
+    const result =
+        [];
+
+
+    let count =
+        70;
+
+
+    if (mode === "rain") {
+
+        count =
+            130;
+
+    }
+
+
+    if (mode === "storm") {
+
+        count =
+            170;
+
+    }
+
+
+    if (mode === "snow") {
+
+        count =
+            90;
+
+    }
+
+
+    if (mode === "fog") {
+
+        count =
+            35;
+
+    }
+
+
+    for (
+        let i = 0;
+        i < count;
+        i++
+    ) {
+
+        result.push({
+
+            x:
+                Math.random() *
+                window.innerWidth,
+
+            y:
+                Math.random() *
+                window.innerHeight,
+
+            speed:
+                0.3 +
+                Math.random() * 1.5,
+
+            size:
+                0.5 +
+                Math.random() * 2,
+
+            drift:
+                (
+                    Math.random() - 0.5
+                ) * 0.4,
+
+            opacity:
+                0.15 +
+                Math.random() * 0.35,
+
+            phase:
+                Math.random() *
+                Math.PI * 2
+
+        });
+
+    }
+
+
+    return result;
+
+}
+
+
+/* =========================================================
+   CHANGE WEATHER PARTICLES
+========================================================= */
+
+function setWeatherMode(
+    newMode
+) {
+
+    /*
+     * 天气类型完全没变化：
+     *
+     * 不创建任何新粒子。
+     *
+     * 这正是解决之前“5秒刷新星星”的关键。
+     */
+
+    if (
+        newMode === currentWeatherMode &&
+        !transitionActive
+    ) {
+
+        return;
+
+    }
+
+
+    /*
+     * 如果当前正在过渡，
+     * 这里让当前显示天气继续作为旧天气。
+     */
+
+    previousWeatherMode =
+        currentWeatherMode;
+
+
+    /*
+     * 只在天气类型真正发生变化时
+     * 创建新粒子。
+     */
+
+    nextParticles =
+        createParticles(
+            newMode
+        );
+
+
+    currentWeatherMode =
+        newMode;
+
+
+    transitionStart =
+        performance.now();
+
+
+    transitionActive =
+        true;
+
+}
+
+
+/* =========================================================
+   UPDATE PARTICLES
+========================================================= */
+
+function updateParticles(
+    particleList,
+    mode
+) {
+
+    for (
+        const p
+        of particleList
+    ) {
+
+
+        /* ===============================================
+           CLEAR / CLOUD
+        =============================================== */
+
+        if (
+            mode === "clear" ||
+            mode === "cloud"
+        ) {
+
+            p.y -=
+                p.speed * 0.15;
+
+
+            p.x +=
+                p.drift;
+
+
+            /*
+             * 让星尘缓慢左右漂浮。
+             */
+
+            p.x +=
+                Math.sin(
+                    performance.now() *
+                    0.0004 +
+                    p.phase
+                ) * 0.08;
+
+
+            if (
+                p.y < -10
+            ) {
+
+                p.y =
+                    window.innerHeight +
+                    10;
+
+            }
+
+        }
+
+
+        /* ===============================================
+           RAIN / STORM
+        =============================================== */
+
+        else if (
+            mode === "rain" ||
+            mode === "storm"
+        ) {
+
+            p.y +=
+                p.speed * 7;
+
+
+            p.x +=
+                p.drift;
+
+
+            if (
+                p.y >
+                window.innerHeight + 20
+            ) {
+
+                p.y =
+                    -20;
+
+
+                p.x =
+                    Math.random() *
+                    window.innerWidth;
+
+            }
+
+        }
+
+
+        /* ===============================================
+           SNOW
+        =============================================== */
+
+        else if (
+            mode === "snow"
+        ) {
+
+            p.y +=
+                p.speed;
+
+
+            p.x +=
+                Math.sin(
+                    p.y * 0.01 +
+                    p.phase
+                ) * 0.3;
+
+
+            if (
+                p.y >
+                window.innerHeight + 10
+            ) {
+
+                p.y =
+                    -10;
+
+            }
+
+        }
+
+
+        /* ===============================================
+           FOG
+        =============================================== */
+
+        else if (
+            mode === "fog"
+        ) {
+
+            p.x +=
+                p.speed * 0.25;
+
+
+            if (
+                p.x >
+                window.innerWidth + 100
+            ) {
+
+                p.x =
+                    -100;
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   DRAW PARTICLES
+========================================================= */
+
+function drawParticles(
+    particleList,
+    mode,
+    alpha
+) {
+
+    if (
+        alpha <= 0
+    ) {
+
+        return;
+
+    }
+
+
+    /* ===============================================
+       CLEAR / CLOUD
+    =============================================== */
+
+    if (
+        mode === "clear" ||
+        mode === "cloud"
+    ) {
+
+        for (
+            const p
+            of particleList
+        ) {
+
+            ctx.beginPath();
+
+
+            ctx.arc(
+                p.x,
+                p.y,
+                p.size,
+                0,
+                Math.PI * 2
+            );
+
+
+            ctx.fillStyle =
+                `rgba(
+                    110,
+                    220,
+                    255,
+                    ${p.opacity * alpha}
+                )`;
+
+
+            ctx.fill();
+
+        }
+
+    }
+
+
+    /* ===============================================
+       RAIN / STORM
+    =============================================== */
+
+    else if (
+        mode === "rain" ||
+        mode === "storm"
+    ) {
+
+        for (
+            const p
+            of particleList
+        ) {
+
+            ctx.beginPath();
+
+
+            ctx.moveTo(
+                p.x,
+                p.y
+            );
+
+
+            ctx.lineTo(
+                p.x - 2,
+                p.y + 14
+            );
+
+
+            ctx.strokeStyle =
+                `rgba(
+                    100,
+                    210,
+                    255,
+                    ${p.opacity * alpha * 0.65}
+                )`;
+
+
+            ctx.lineWidth =
+                1;
+
+
+            ctx.stroke();
+
+        }
+
+    }
+
+
+    /* ===============================================
+       SNOW
+    =============================================== */
+
+    else if (
+        mode === "snow"
+    ) {
+
+        for (
+            const p
+            of particleList
+        ) {
+
+            ctx.beginPath();
+
+
+            ctx.arc(
+                p.x,
+                p.y,
+                p.size * 1.5,
+                0,
+                Math.PI * 2
+            );
+
+
+            ctx.fillStyle =
+                `rgba(
+                    220,
+                    250,
+                    255,
+                    ${p.opacity * alpha}
+                )`;
+
+
+            ctx.fill();
+
+        }
+
+    }
+
+
+    /* ===============================================
+       FOG
+    =============================================== */
+
+    else if (
+        mode === "fog"
+    ) {
+
+        for (
+            const p
+            of particleList
+        ) {
+
+            ctx.beginPath();
+
+
+            ctx.arc(
+                p.x,
+                p.y,
+                80,
+                0,
+                Math.PI * 2
+            );
+
+
+            ctx.fillStyle =
+                `rgba(
+                    180,
+                    210,
+                    220,
+                    ${0.008 * alpha}
+                )`;
+
+
+            ctx.fill();
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   SMOOTH STEP
+========================================================= */
+
+function smoothStep(t) {
+
+    /*
+     * 让过渡：
+     *
+     * 开始慢
+     * 中间快
+     * 结束慢
+     *
+     * 比单纯线性淡化自然。
+     */
+
+    return (
+        t *
+        t *
+        (3 - 2 * t)
+    );
+
+}
+
+
+/* =========================================================
+   WEATHER ANIMATION
+========================================================= */
+
+function drawWeather() {
+
+    ctx.clearRect(
+        0,
+        0,
+        window.innerWidth,
+        window.innerHeight
+    );
+
+
+    /* ===============================================
+       NORMAL STATE
+    =============================================== */
+
+    if (
+        !transitionActive
+    ) {
+
+        updateParticles(
+            particles,
+            currentWeatherMode
+        );
+
+
+        drawParticles(
+            particles,
+            currentWeatherMode,
+            1
+        );
+
+    }
+
+
+    /* ===============================================
+       TRANSITION STATE
+    =============================================== */
+
+    else {
+
+        const elapsed =
+            performance.now() -
+            transitionStart;
+
+
+        let progress =
+            elapsed /
+            PARTICLE_TRANSITION_DURATION;
+
+
+        progress =
+            Math.min(
+                Math.max(
+                    progress,
+                    0
+                ),
+                1
+            );
+
+
+        const smooth =
+            smoothStep(
+                progress
+            );
+
+
+        /*
+         * 旧天气：
+         *
+         * 100% → 0%
+         */
+
+        const oldAlpha =
+            1 - smooth;
+
+
+        /*
+         * 新天气：
+         *
+         * 0% → 100%
+         */
+
+        const newAlpha =
+            smooth;
+
+
+        /*
+         * 两套粒子同时运行。
+         */
+
+        updateParticles(
+            particles,
+            previousWeatherMode
+        );
+
+
+        updateParticles(
+            nextParticles,
+            currentWeatherMode
+        );
+
+
+        /*
+         * 旧天气淡出。
+         */
+
+        drawParticles(
+            particles,
+            previousWeatherMode,
+            oldAlpha
+        );
+
+
+        /*
+         * 新天气淡入。
+         */
+
+        drawParticles(
+            nextParticles,
+            currentWeatherMode,
+            newAlpha
+        );
+
+
+        /*
+         * 过渡完成。
+         */
+
+        if (
+            progress >= 1
+        ) {
+
+            particles =
+                nextParticles;
+
+
+            nextParticles =
+                [];
+
+
+            transitionActive =
+                false;
+
+        }
+
+    }
+
+
+    requestAnimationFrame(
+        drawWeather
+    );
+
+}
+
+
+/* =========================================================
+   INITIAL PARTICLES
+========================================================= */
+
+particles =
+    createParticles(
+        currentWeatherMode
+    );
+
+
+drawWeather();
+
+
+/* =========================================================
+   LOAD WEATHER
+========================================================= */
+
+async function loadWeather() {
+
+    weatherStatus.textContent =
+        "WEATHER · UPDATING";
+
+
+    /*
+     * 构建 API 参数。
+     */
+
+    const params =
+        new URLSearchParams({
+
+            latitude:
+                BEIJING.latitude,
+
+            longitude:
+                BEIJING.longitude,
+
+            timezone:
+                "Asia/Shanghai",
+
+            forecast_days:
+                "2",
+
+            current:
+                [
+                    "temperature_2m",
+                    "relative_humidity_2m",
+                    "apparent_temperature",
+                    "precipitation",
+                    "weather_code",
+                    "wind_speed_10m",
+                    "wind_direction_10m",
+                    "is_day"
+                ].join(","),
+
+            hourly:
+                [
+                    "temperature_2m",
+                    "weather_code",
+                    "precipitation_probability"
+                ].join(","),
+
+            daily:
+                [
+                    "sunrise",
+                    "sunset",
+                    "temperature_2m_max",
+                    "temperature_2m_min"
+                ].join(",")
+
+        });
+
+
+    try {
+
+        const response =
+            await fetch(
+                `https://api.open-meteo.com/v1/forecast?${params}`,
+                {
+                    cache:
+                        "no-store"
+                }
+            );
+
+
+        if (
+            !response.ok
+        ) {
+
+            throw new Error(
+                `Weather HTTP ${response.status}`
+            );
+
+        }
+
+
+        const data =
+            await response.json();
+
+
+        /*
+         * 保存最后一次天气。
+         */
+
+        weatherData =
+            data;
+
+
+        /*
+         * 更新界面。
+         */
+
+        renderWeather(
+            data
+        );
+
+
+        weatherStatus.textContent =
+            "WEATHER · ONLINE";
+
+
+        const now =
+            new Date();
+
+
+        weatherUpdated.textContent =
+            `UPDATED ${
+                now.toLocaleTimeString(
+                    "zh-CN",
+                    {
+                        hour:
+                            "2-digit",
+
+                        minute:
+                            "2-digit",
+
+                        second:
+                            "2-digit"
+                    }
+                )
+            }`;
+
+
+    } catch (error) {
+
+        console.error(
+            "Weather error:",
+            error
+        );
+
+
+        /*
+         * 如果以前已经成功获得天气，
+         * 保留旧天气。
+         */
+
+        if (
+            weatherData
+        ) {
+
+            weatherStatus.textContent =
+                "WEATHER · HOLDOVER";
+
+        } else {
+
+            weatherStatus.textContent =
+                "WEATHER · UNAVAILABLE";
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   RENDER WEATHER
+========================================================= */
+
+function renderWeather(
+    data
+) {
+
+    const current =
+        data.current;
+
+
+    /*
+     * 获取天气描述。
+     */
+
+    const info =
+        weatherInfo(
+            current.weather_code,
+            Boolean(current.is_day)
+        );
+
+
+    /*
+     * 图标。
+     */
+
+    weatherIcon.textContent =
+        info.icon;
+
+
+    /*
+     * 温度。
+     */
+
+    temperature.textContent =
+        `${Math.round(
+            current.temperature_2m
+        )}°`;
+
+
+    /*
+     * 天气。
+     */
+
+    condition.textContent =
+        info.text;
+
+
+    /*
+     * 体感。
+     */
+
+    feelsLike.textContent =
+        `${Math.round(
+            current.apparent_temperature
+        )}°`;
+
+
+    /*
+     * 湿度。
+     */
+
+    humidity.textContent =
+        `${Math.round(
+            current.relative_humidity_2m
+        )}%`;
+
+
+    /*
+     * 风速。
+     */
+
+    wind.textContent =
+        `${Math.round(
+            current.wind_speed_10m
+        )} km/h`;
+
+
+    /*
+     * 当前小时降水概率。
+     */
+
+    const currentHour =
+        current.time.substring(
+            0,
+            13
+        );
+
+
+    let rainProbability =
+        null;
+
+
+    for (
+        let i = 0;
+        i < data.hourly.time.length;
+        i++
+    ) {
+
+        if (
+            data.hourly.time[i]
+                .startsWith(
+                    currentHour
+                )
+        ) {
+
+            rainProbability =
+                data.hourly
+                    .precipitation_probability[i];
+
+            break;
+
+        }
+
+    }
+
+
+    precipitation.textContent =
+        rainProbability !== null
+            ? `${Math.round(
+                rainProbability
+            )}%`
+            : "--%";
+
+
+    /*
+     * 小时预报。
+     */
+
+    renderForecast(
+        data
+    );
+
+
+    /*
+     * 关键：
+     *
+     * 只有天气类型真的变化，
+     * 才会启动粒子平滑过渡。
+     */
+
+    const newMode =
+        getWeatherMode(
+            current.weather_code
+        );
+
+
+    setWeatherMode(
+        newMode
+    );
+
+}
+
+
+/* =========================================================
+   RENDER HOURLY FORECAST
+========================================================= */
+
+function renderForecast(
+    data
+) {
+
+    forecast.innerHTML =
+        "";
+
+
+    const times =
+        data.hourly.time;
+
+
+    const temperatures =
+        data.hourly.temperature_2m;
+
+
+    const codes =
+        data.hourly.weather_code;
+
+
+    /*
+     * 当前小时。
+     */
+
+    const currentHour =
+        data.current.time.substring(
+            0,
+            13
+        );
+
+
+    let startIndex =
+        0;
+
+
+    for (
+        let i = 0;
+        i < times.length;
+        i++
+    ) {
+
+        if (
+            times[i].startsWith(
+                currentHour
+            )
+        ) {
+
+            startIndex =
+                i;
+
+            break;
+
+        }
+
+    }
+
+
+    /*
+     * 显示未来 8 小时。
+     */
+
+    for (
+        let i = startIndex;
+        i <
+        Math.min(
+            startIndex + 8,
+            times.length
+        );
+        i++
+    ) {
+
+        /*
+         * Open-Meteo 的时间已经指定为
+         * Asia/Shanghai。
+         *
+         * 这里解析时显式补上 +08:00，
+         * 避免浏览器把它误认为本地时间。
+         */
+
+        let timeString =
+            times[i];
+
+
+        if (
+            !/[zZ]|[+-]\d{2}:\d{2}$/.test(
+                timeString
+            )
+        ) {
+
+            timeString +=
+                "+08:00";
+
+        }
+
+
+        const date =
+            new Date(
+                timeString
+            );
+
+
+        const hour =
+            date.toLocaleTimeString(
+                "zh-CN",
+                {
+                    hour:
+                        "2-digit",
+
+                    minute:
+                        "2-digit",
+
+                    hour12:
+                        false,
+
+                    timeZone:
+                        "Asia/Shanghai"
+                }
+            );
+
+
+        const info =
+            weatherInfo(
+                codes[i],
+                true
+            );
+
+
+        const item =
+            document.createElement(
+                "div"
+            );
+
+
+        item.className =
+            "forecast-item";
+
+
+        item.innerHTML = `
+
+            <div class="forecast-time">
+                ${hour}
+            </div>
+
+            <div class="forecast-icon">
+                ${info.icon}
+            </div>
+
+            <div class="forecast-temp">
+                ${Math.round(
+                    temperatures[i]
+                )}°
+            </div>
+
+        `;
+
+
+        forecast.appendChild(
+            item
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   MOUSE LIGHT
+========================================================= */
+
+const cursorLight =
+    document.getElementById(
+        "cursorLight"
+    );
+
+
+window.addEventListener(
+    "mousemove",
+    event => {
+
+        cursorLight.style.left =
+            `${event.clientX}px`;
+
+
+        cursorLight.style.top =
+            `${event.clientY}px`;
+
+    }
+);
+
+
+/* =========================================================
+   INITIALIZATION
+========================================================= */
+
+(async function init() {
+
+    /*
+     * 先立即显示本地时间。
+     *
+     * 用户不需要等待 API。
+     */
+
+    updateClock();
+
+
+    /*
+     * 立即进行网络时间校准。
+     */
+
+    synchronizeClock();
+
+
+    /*
+     * 立即获取北京天气。
+     */
+
+    loadWeather();
+
+
+    /*
+     * 天气每 15 分钟更新。
+     */
+
+    setInterval(
+        loadWeather,
+        WEATHER_INTERVAL
+    );
+
+})();
+
+</script>
+
+</body>
+</html>
+```
